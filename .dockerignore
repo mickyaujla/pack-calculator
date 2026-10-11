@@ -1,0 +1,7 @@
+.git
+.DS_Store
+bin/
+coverage.out
+README.md
+Dockerfile
+.dockerignore
