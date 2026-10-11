@@ -1,0 +1,4 @@
+/bin/
+/pack-calculator
+.DS_Store
+coverage.out
