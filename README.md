@@ -114,7 +114,7 @@ Both `packing` and `api` have 100% statement coverage. The tests cover:
 - Cases where a greedy approach fails (6, 9, 20 with an order of 43)
 - Large orders with unusual sizes (23, 31, 53 with an order of 500,000)
 - A single pack size, unsorted sizes and duplicate sizes
-- Invalid input: zero, negative or too many items, and empty, zero or negative pack sizes
+- Invalid input: zero, negative or too many items, and empty, zero, negative or oversized pack sizes
 - HTTP behaviour: status codes, malformed JSON, the wrong HTTP method, custom pack sizes, the health check and the UI route
 
 ### Manually: the UI
@@ -123,33 +123,6 @@ Both `packing` and `api` have 100% statement coverage. The tests cover:
 2. Open http://localhost:8000.
 3. Enter the number of items. Optionally, enter pack sizes as a comma-separated list, e.g. `6, 9, 20`.
 4. Click **Calculate**.
-
-### Manually: curl
-
-Using the default pack sizes:
-
-```bash
-curl -X POST http://localhost:8000/api/calculate \
-  -H "Content-Type: application/json" \
-  -d '{"items": 12001}'
-```
-
-With custom pack sizes:
-
-```bash
-curl -X POST http://localhost:8000/api/calculate \
-  -H "Content-Type: application/json" \
-  -d '{"items": 43, "packSizes": [6, 9, 20]}'
-```
-
-Other endpoints:
-
-```bash
-curl http://localhost:8000/api/pack-sizes
-curl http://localhost:8000/healthz
-```
-
-To test the live deployment instead, replace `http://localhost:8000` with `https://pack-calculator-vuy8.onrender.com`.
 
 ### Manually: Postman
 
@@ -232,6 +205,7 @@ Calculates the packs for an order.
 | `items` is zero or negative | `items must be greater than 0` |
 | `items` is over 10,000,000 | `items exceeds the maximum order size` |
 | A pack size is zero or negative | `pack sizes must be greater than 0` |
+| A pack size is over 10,000,000 | `pack sizes must not exceed the maximum order size` |
 
 ### `GET /api/pack-sizes`
 
@@ -253,15 +227,9 @@ Serves the web UI.
 
 ## Deployment
 
-The app is deployed on [Render](https://render.com) as a Docker web service:
+Hosted on [Render](https://render.com) as a Docker web service. Every push to `main` triggers a redeploy, and the tests run inside the Docker build, so a failing test stops the deploy. The final image is about 13 MB and contains only the compiled binary.
 
-- Render builds the `Dockerfile` from the `main` branch and redeploys automatically on every push.
-- The Docker build runs `go test ./...` first, so a failing test stops the deploy.
-- The final image is based on distroless and contains only the compiled binary. It runs as a non-root user and is about 13 MB.
-- Render provides the `PORT` environment variable, which the app reads at startup.
-- Render's health check uses `GET /healthz`.
-
-As this is a take-home tech test, the repo has no CI/CD pipeline, to keep it lightweight. The tests that run inside the Docker build act as the safety check before each deploy.
+As this is a take-home tech test, there is no CI/CD pipeline, to keep it lightweight.
 
 ## Design decisions
 
