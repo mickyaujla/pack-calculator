@@ -51,6 +51,7 @@ func TestCalculateErrors(t *testing.T) {
 		{"no pack sizes", 10, []int{}},
 		{"zero pack sizes", 10, []int{0, 250}},
 		{"negative pack sizes", 10, []int{-250}},
+		{"pack size too large", 10, []int{MaxItems + 1}},
 	}
 
 	for _, test := range tests {

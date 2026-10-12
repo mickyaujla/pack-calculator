@@ -33,6 +33,10 @@ func Calculate(items int, sizes []int) ([]Pack, error) {
 		if size <= 0 {
 			return nil, errors.New("pack sizes must be greater than 0")
 		}
+
+		if size > MaxItems {
+			return nil, errors.New("pack sizes must not exceed the maximum order size")
+		}
 	}
 
 	smallestPack := slices.Min(sizes)
