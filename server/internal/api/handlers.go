@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/mickyaujla/pack-calculator/server/internal/packing"
+	"github.com/mickyaujla/pack-calculator/web"
 )
 
 type Server struct {
@@ -18,6 +19,7 @@ func NewServer(packSizes []int) *Server {
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/pack-sizes", s.getPackSizes)
 	mux.HandleFunc("POST /api/calculate", s.calculate)
@@ -34,6 +36,11 @@ type CalculateResponse struct {
 	TotalItems int            `json:"totalItems"`
 	TotalPacks int            `json:"totalPacks"`
 	Packs      []packing.Pack `json:"packs"`
+}
+
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(web.IndexHTML)
 }
 
 func (s *Server) getPackSizes(w http.ResponseWriter, r *http.Request) {

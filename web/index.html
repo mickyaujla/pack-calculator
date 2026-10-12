@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pack Calculator</title>
+</head>
+<body class="bg-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <script type="module">
+    import React, { useState, useEffect } from "https://esm.sh/react@18";
+    import { createRoot } from "https://esm.sh/react-dom@18/client";
+    import htm from "https://esm.sh/htm@3";
+
+    const tailwind = document.createElement("script");
+    tailwind.src = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
+    document.head.appendChild(tailwind);
+
+    const html = htm.bind(React.createElement);
+
+    function App() {
+      const [items, setItems] = useState("");
+      const [packSizes, setPackSizes] = useState("");
+      const [defaultSizes, setDefaultSizes] = useState([]);
+      const [result, setResult] = useState(null);
+      const [error, setError] = useState("");
+      const [loading, setLoading] = useState(false);
+
+      useEffect(() => {
+        fetch("/api/pack-sizes")
+          .then((res) => res.json())
+          .then((data) => setDefaultSizes(data.packSizes))
+          .catch(() => {});
+      }, []);
+
+      async function calculate(event) {
+        event.preventDefault();
+        setError("");
+        setResult(null);
+
+        const body = { items: Number(items) };
+        if (packSizes.trim() !== "") {
+          const sizes = packSizes.split(",").map((s) => Number(s.trim()));
+          if (sizes.some((s) => !Number.isInteger(s))) {
+            setError("Pack sizes must be whole numbers separated by commas, e.g. 23, 31, 53");
+            return;
+          }
+          body.packSizes = sizes;
+        }
+
+        setLoading(true);
+        try {
+          const res = await fetch("/api/calculate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setError(data.error || "Something went wrong");
+          } else {
+            setResult(data);
+          }
+        } catch {
+          setError("Could not reach the server");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      return html`
+        <main class="max-w-lg mx-auto p-6">
+          <h1 class="text-2xl font-bold text-slate-800 mb-6">Pack Calculator</h1>
+
+          <form onSubmit=${calculate} class="bg-white rounded-xl shadow p-5 space-y-4">
+            <label class="block">
+              <span class="text-sm font-medium text-slate-700">Items ordered</span>
+              <input type="number" required value=${items} onInput=${(e) => setItems(e.target.value)}
+                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20" placeholder="e.g. 12001" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-medium text-slate-700">Pack sizes (optional)</span>
+              <input type="text" value=${packSizes} onInput=${(e) => setPackSizes(e.target.value)}
+                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
+                placeholder=${defaultSizes.length ? defaultSizes.join(", ") : "250, 500, 1000, 2000, 5000"} />
+              <span class="text-xs text-slate-500">Comma separated. Leave empty to use the defaults.</span>
+            </label>
+
+            <button type="submit" disabled=${loading}
+              class="w-full rounded-lg bg-slate-900 text-white py-2 font-medium hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700/40 focus-visible:ring-offset-2 disabled:opacity-50">
+              ${loading ? "Calculating..." : "Calculate"}
+            </button>
+          </form>
+
+          ${error && html`
+            <div class="mt-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3">${error}</div>
+          `}
+
+          ${result && html`
+            <div class="mt-4 bg-white rounded-xl shadow p-5">
+              <div class="grid grid-cols-3 gap-2 text-center mb-4">
+                <div><div class="text-xs text-slate-500">Ordered</div><div class="text-xl font-semibold">${result.items}</div></div>
+                <div><div class="text-xs text-slate-500">Shipped</div><div class="text-xl font-semibold text-sky-700">${result.totalItems}</div></div>
+                <div><div class="text-xs text-slate-500">Packs</div><div class="text-xl font-semibold">${result.totalPacks}</div></div>
+              </div>
+              <table class="w-full text-left">
+                <thead><tr class="text-sm text-slate-500 border-b border-slate-300"><th class="py-2">Pack size</th><th class="py-2">Count</th></tr></thead>
+                <tbody>
+                  ${result.packs.map((pack) => html`
+                    <tr key=${pack.size} class="border-b border-slate-200 last:border-0">
+                      <td class="py-2">${pack.size}</td>
+                      <td class="py-2">${pack.count}</td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    createRoot(document.getElementById("root")).render(html`<${App} />`);
+  </script>
+</body>
+</html>

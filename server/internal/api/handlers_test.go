@@ -143,6 +143,18 @@ func TestGetPackSizes(t *testing.T) {
 	}
 }
 
+func TestHomePage(t *testing.T) {
+	server := NewServer(packing.DefaultSizes())
+	request := httptest.NewRequest("GET", "/", nil)
+	recorder := httptest.NewRecorder()
+
+	server.Routes().ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), "Pack Calculator") {
+		t.Errorf("status = %d, page did not contain the app", recorder.Code)
+	}
+}
+
 func TestHealth(t *testing.T) {
 	server := NewServer(packing.DefaultSizes())
 	request := httptest.NewRequest("GET", "/healthz", nil)
